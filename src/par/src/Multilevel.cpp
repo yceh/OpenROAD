@@ -149,7 +149,8 @@ std::vector<int> MultilevelPartitioner::Partition(
 std::vector<int> MultilevelPartitioner::SingleLevelPartition(
     const HGraphPtr& hgraph,
     const Matrix<float>& upper_block_balance,
-    const Matrix<float>& lower_block_balance) const
+    const Matrix<float>& lower_block_balance,
+    const RRP::Graph* init_graph) const
 {
   // Step 1: run coarsening
   // Step 2: run initial partitioning

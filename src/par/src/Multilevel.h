@@ -46,6 +46,9 @@
 #include "utl/Logger.h"
 
 namespace par {
+namespace RRP {
+    struct Graph;
+}
 
 // Multilevel partitioner
 class MultilevelPartitioner;
@@ -92,7 +95,8 @@ class MultilevelPartitioner
   std::vector<int> SingleLevelPartition(
       const HGraphPtr& hgraph,
       const Matrix<float>& upper_block_balance,
-      const Matrix<float>& lower_block_balance) const;
+      const Matrix<float>& lower_block_balance,
+      const RRP::Graph*) const;
 
   // We expose this interface for the last-minute improvement
   std::vector<int> SingleCycleRefinement(
