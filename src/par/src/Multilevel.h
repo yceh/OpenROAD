@@ -81,7 +81,7 @@ class MultilevelPartitioner
   // Because our slack-rebudgeting algorithm will change hgraph
   Partitions Partition(const HGraphPtr& hgraph,
                        const Matrix<float>& upper_block_balance,
-                       const Matrix<float>& lower_block_balance) const;
+                       const Matrix<float>& lower_block_balance,RRP::Graph* ) const;
 
   // Use the initial solution as the community feature
   // Call Vcycle refinement

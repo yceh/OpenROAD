@@ -137,7 +137,8 @@ void PartitionMgr::tritonPartHypergraph(
     int max_num_vcycle,
     int num_coarsen_solutions,
     int num_vertices_threshold_ilp,
-    int global_net_threshold)
+    int global_net_threshold,
+    const char* delay_graph_file)
 {
   // Use TritonPart to partition a hypergraph
   // In this mode, TritonPart works as hMETIS.
@@ -183,7 +184,8 @@ void PartitionMgr::tritonPartHypergraph(
                                    fixed_file,
                                    community_file,
                                    group_file,
-                                   placement_file);
+                                   placement_file,
+                                   delay_graph_file);
 }
 
 // Evaluate a given solution of a hypergraph

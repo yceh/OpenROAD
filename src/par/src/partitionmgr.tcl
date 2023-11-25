@@ -37,7 +37,7 @@
 # Partition netlist command
 #--------------------------------------------------------------------
 sta::define_cmd_args "triton_part_hypergraph" {
-  -hypergraph_file hypergraph_file \
+  [-hypergraph_file hypergraph_file] \
   -num_parts num_parts \
   -balance_constraint balance_constraint \
   [-base_balance base_balance] \
@@ -71,6 +71,7 @@ sta::define_cmd_args "triton_part_hypergraph" {
   [-num_coarsen_solutions num_coarsen_solutions] \
   [-num_vertices_threshold_ilp num_vertices_threshold_ilp] \
   [-global_net_threshold global_net_threshold] \
+  [-delay_graph_file delay_graph_file]
   }
 proc triton_part_hypergraph { args } {
   sta::parse_key_args "triton_part_hypergraph" args \
@@ -107,13 +108,21 @@ proc triton_part_hypergraph { args } {
             -max_num_vcycle \
             -num_coarsen_solutions \
             -num_vertices_threshold_ilp \
-            -global_net_threshold } \
+            -global_net_threshold \
+            -delay_graph_file } \
       flags {}
  
-  if { ![info exists keys(-hypergraph_file)] } {
-    utl::error PAR 0924 "Missing mandatory argument -hypergraph_file."
+  if { ![info exists keys(-hypergraph_file)] && ![info exists keys(-delay_graph_file) ] } {
+    utl::error PAR 0924 "Missing mandatory argument -hypergraph_file or -delay_graph_file."
   }
-  set hypergraph_file $keys(-hypergraph_file)
+  set hypergraph_file ""
+  if { [info exists keys(-hypergraph_file)] } {
+    set hypergraph_file $keys(-hypergraph_file)
+  }
+  set delay_graph_file ""
+  if { [info exists keys(-delay_graph_file)] } {
+    set delay_graph_file $keys(-delay_graph_file)
+  }
   set num_parts 2
   set balance_constraint 1.0
   set base_balance { 1.0 }
@@ -313,7 +322,8 @@ proc triton_part_hypergraph { args } {
             $max_num_vcycle \
             $num_coarsen_solutions \
             $num_vertices_threshold_ilp \
-            $global_net_threshold
+            $global_net_threshold \
+            $delay_graph_file
 }
 
 

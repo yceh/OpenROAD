@@ -91,7 +91,7 @@ MultilevelPartitioner::MultilevelPartitioner(
 std::vector<int> MultilevelPartitioner::Partition(
     const HGraphPtr& hgraph,
     const Matrix<float>& upper_block_balance,
-    const Matrix<float>& lower_block_balance) const
+    const Matrix<float>& lower_block_balance,RRP::Graph* g) const
 {
   // Main implementation
   // Step 1: run initial partitioning with different random seed
@@ -108,7 +108,7 @@ std::vector<int> MultilevelPartitioner::Partition(
   for (int id = 0; id < num_coarsen_solutions_; id++) {
     coarsener_->IncreaseRandomSeed();
     top_solutions.push_back(
-        SingleLevelPartition(hgraph, upper_block_balance, lower_block_balance));
+        SingleLevelPartition(hgraph, upper_block_balance, lower_block_balance,g));
     const float cost
         = evaluator_->CutEvaluator(hgraph, top_solutions.back(), false).cost;
     if (cost <= best_cost) {
