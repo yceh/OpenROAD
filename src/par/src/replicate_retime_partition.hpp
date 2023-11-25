@@ -1,6 +1,7 @@
 #include <vector>
 #include "Utilities.h"
 #include "graph.hpp"
+namespace par{
 namespace RRP {
     // clusters: index of vertexes in each cluster
     // Abstract each output of a cluster into a single vertex 
@@ -12,11 +13,16 @@ namespace RRP {
     void tarjan_loops(const Graph& in,std::vector<std::vector<Edge>>& loops);
 
     //The partitions each cluster is in
-    struct Each_Cluster_Solution{
+    struct Each_Edge_Solution{
         std::vector<int> partitions;
-        
+        Edge edge;
     };
-    typedef std::vector<Each_Cluster_Solution> Partition_Solution_t;
+
+    struct Partition_Solution_t{
+        std::vector<Each_Edge_Solution> each_edge_solution;
+        int clock_period;
+        std::vector<std::vector<int>> crossing_count;
+    };
     // Finding loops with timing violations that should be added to the formulation using FEAS, and append to loops 
     void FEAS_violating_loops(const Graph& in,const Partition_Solution_t& sol_in, std::vector<std::vector<Edge>>& loops);
 
@@ -24,4 +30,5 @@ namespace RRP {
     void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,const Matrix<float>& upper_block_balance,
     const par::Matrix<float>& lower_block_balance);
 
+}
 }
