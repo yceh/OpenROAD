@@ -71,6 +71,33 @@ RRP::Graph RRP::load_delay_graph_from_txt(const char* file_name){
     return g;
 }
 
+std::vector<std::vector<size_t>> RRP::load_clusters_from_txt(const char* file_name)
+{
+    std::string line;
+    std::ifstream myfile (file_name);
+    std::vector<std::vector<size_t>> clusters;
+    if (myfile.is_open())
+    {
+        int line_cnt=0;
+        while ( getline (myfile,line) )
+        {
+          std::stringstream ss(line);
+          line_cnt++;
+          std::vector<int> fields{std::istream_iterator<int>(ss),std::istream_iterator<int>()};
+          // cluster 0: vertex0, vertex1....
+          std::vector<size_t> cluster;
+          for (int v : fields) {
+            cluster.push_back(v);
+          }
+          clusters.push_back(cluster);          
+        }
+        myfile.close();
+    }
+    else std::cout << "Unable to open file";
+
+    return clusters;
+}
+
 void RRP::print_graph(RRP::Graph& g,FILE* ostream){
   fprintf(ostream,"Graph has %lu vertices\n",g.vertices.size());
   for(auto& v:g.vertices){

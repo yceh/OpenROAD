@@ -1,5 +1,5 @@
 #include <cstddef>
-#include "replicate_retime_partition.hpp"
+#include "../replicate_retime_partition.hpp"
 
 using namespace par;
 
@@ -8,22 +8,26 @@ void build_test_graph(RRP::Graph& test_graph);
 // for displaying 
 void show_graph(RRP::Graph& graph, std::vector<size_t>& mapping_table);
 
-int main()
+int main(int argc, char** argv)
 {
     RRP::Graph test_graph, new_graph;
     std::vector<size_t> mapping_table;
     std::vector<std::vector<size_t>> clusters;
-    std::vector<size_t> cluster0, cluster1;
 
-    build_test_graph(test_graph);
-    cluster0.push_back(0);
-    cluster0.push_back(1);
-    cluster0.push_back(3);
-    cluster0.push_back(4);
-    cluster1.push_back(2);
-    cluster1.push_back(5);
-    clusters.push_back(cluster0);
-    clusters.push_back(cluster1);
+    test_graph=par::RRP::load_delay_graph_from_txt(argv[1]);
+    clusters=par::RRP::load_clusters_from_txt(argv[2]);
+
+    // std::vector<size_t> cluster0, cluster1;
+
+    // build_test_graph(test_graph);
+    // cluster0.push_back(0);
+    // cluster0.push_back(1);
+    // cluster0.push_back(3);
+    // cluster0.push_back(4);
+    // cluster1.push_back(2);
+    // cluster1.push_back(5);
+    // clusters.push_back(cluster0);
+    // clusters.push_back(cluster1);
 
     RRP::make_abstracted_graph(test_graph, clusters, new_graph, mapping_table);
 

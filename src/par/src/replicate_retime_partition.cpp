@@ -142,21 +142,28 @@ namespace RRP {
     void add_fanin_inf(const std::vector<Fanin> &new_fanin, const Fanin &src_fanin, std::vector<Fanin> &result_fanin) 
     {
         for (const Fanin n_fanin : new_fanin) {
-            result_fanin.push_back( {n_fanin.reg_cnt+src_fanin.reg_cnt, 
-                                        n_fanin.comb_delay+src_fanin.comb_delay, 
-                                        src_fanin.driver_id});
+            if (n_fanin.comb_delay == 0 && n_fanin.reg_cnt == INF) {
+                result_fanin.push_back( {n_fanin.reg_cnt, 
+                                            n_fanin.comb_delay, 
+                                            src_fanin.driver_id}); 
+            } else {
+                result_fanin.push_back( {n_fanin.reg_cnt+src_fanin.reg_cnt, 
+                                            n_fanin.comb_delay+src_fanin.comb_delay, 
+                                            src_fanin.driver_id});                
+            }
         }
     }
 
 
     void WD_refine(const Graph& in, const size_t cluster_num, const std::vector<size_t>& cluster, const std::vector<size_t> &vertices_cluster_num, 
-                    const std::vector<src_inf> &srcs, const std::vector<size_t> &dsts, std::vector<std::vector<Fanin>> &new_fanins) 
+                    const std::vector<src_inf> &srcs, const std::vector<size_t> &dsts, std::vector<std::vector<Fanin>> &dsts_new_fanins) 
     {
-        std::vector<Fanin> new_fanin;
+        std::vector<std::vector<Fanin>> srcs_based_new_fanins;
                 
         for (const src_inf& src : srcs) {
             size_t src_vertex = src.vertex_idx;
-
+            std::vector<Fanin> new_fanin;
+            
             Dijkstra(in, cluster_num, cluster, vertices_cluster_num, src_vertex, dsts, new_fanin);
 
             // for debug----------------------------------
@@ -172,9 +179,21 @@ namespace RRP {
                 Fanin src_fanin = in.vertices[src_vertex].fanins[fanin_idx];
                 std::vector<Fanin> result_fanin;
                 add_fanin_inf(new_fanin, src_fanin, result_fanin);
-                new_fanins.push_back(result_fanin);
-            }        
+                srcs_based_new_fanins.push_back(result_fanin);
+            }
         }
+        for (size_t dst_idx = 0; dst_idx < dsts.size(); dst_idx++) {
+            std::vector<Fanin> dst_fanins;
+            for (size_t src_idx = 0; src_idx < srcs.size(); src_idx++) {
+                Fanin dst_fanin = srcs_based_new_fanins[src_idx][dst_idx];
+                // valid connection
+                if (!(dst_fanin.reg_cnt == INF &&dst_fanin.comb_delay == 0)) {
+                    dst_fanins.push_back(dst_fanin);
+                }
+            }
+            dsts_new_fanins.push_back(dst_fanins);
+        }
+
     }
 
     // remove vertice in the cluster and add new vertices 

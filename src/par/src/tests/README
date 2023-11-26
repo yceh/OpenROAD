@@ -1,0 +1,7 @@
+component_id   number_of_vertex
+....
+component_id   number_of_vertex
+
+dst src reg delay
+...
+dst src reg delay
