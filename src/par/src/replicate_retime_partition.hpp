@@ -8,7 +8,7 @@ namespace RRP {
     // clusters: index of vertexes in each cluster
     // Abstract each output of a cluster into a single vertex 
     // and compute the edges after abstraction using algorithm WD 
-    void make_abstracted_graph(const Graph& in,  const std::vector<std::vector<size_t>>& clusters,Graph& out);
+    void make_abstracted_graph(const Graph& in,  const std::vector<std::vector<size_t>>& clusters,Graph& out, std::vector<size_t>& mapping_table);
 
     //For initial partitioning:
     //Provide initial sets of loops (by partitioning vetexes into different loops)
