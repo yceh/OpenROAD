@@ -1,97 +1,89 @@
-#include "Hypergraph.h"
-#include "TritonPart.h"
-#include "graph.hpp"
-#include "delay_graph.capnp.h"
-#include <capnp/message.h>
-#include <capnp/serialize-packed.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <algorithm>
+
+#include <cstdio>
 #include <cstddef>
-#include <memory>
-#include <utility>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include "graph.hpp"
+#include <fstream>
 #include <vector>
 using namespace par;
-void populate_fanout(RRP::Graph& g)
+void RRP::populate_fanout(RRP::Graph& g)
 {
+  std::size_t edge_start_idx = 0;
   for (size_t vertex_idx = 0; vertex_idx < g.vertices.size(); vertex_idx++) {
-    const auto& vertex = g.vertices[vertex_idx];
+    auto& vertex = g.vertices[vertex_idx];
+    vertex.edge_id_start_idx=edge_start_idx;
     for (size_t fanin_idx = 0; fanin_idx < vertex.fanins.size(); fanin_idx++) {
       const auto& fanin_edge = vertex.fanins[fanin_idx];
       g.vertices[fanin_edge.driver_id].fanouts.push_back(
           RRP::Edge{vertex_idx, fanin_idx});
     }
+    edge_start_idx += vertex.fanins.size();
   }
 }
-RRP::Graph* load_graph_from_file(const char* filename)
-{
-    RRP::Graph* g_ptr = new RRP::Graph;
-  RRP::Graph& g=*g_ptr;
-  g.max_component_cnt = 0;
-  {
-    ::capnp::ReaderOptions options;
-    options.traversalLimitInWords = 1LL << 60;
-    auto fd = open(filename, O_RDONLY);
-    ::capnp::PackedFdMessageReader message(fd, options);
-
-    Graph::Reader graph = message.getRoot<Graph>();
-
-    g.vertices.resize(graph.getVertices().size());
-    for (size_t vertex_idx = 0; vertex_idx < graph.getVertices().size();
-         vertex_idx++) {
-      const auto& vertex = graph.getVertices()[vertex_idx];
-      auto& vertex_out = g.vertices[vertex_idx];
-      vertex_out.id = vertex.getId();
-      vertex_out.foreign_id.cluster_id = vertex.getComponentId();
-      g.max_component_cnt
-          = std::max(g.max_component_cnt, vertex_out.foreign_id.cluster_id);
-      vertex_out.fanins.resize(vertex.getFanins().size());
-      for (size_t fanin_idx = 0; fanin_idx < vertex.getFanins().size();
-           fanin_idx++) {
-        const auto& fanin = vertex.getFanins()[fanin_idx];
-        auto& fanin_out = vertex_out.fanins[fanin_idx];
-        fanin_out.driver_id = fanin.getDriverId();
-        fanin_out.comb_delay = fanin.getCombDelay();
-        fanin_out.reg_cnt = fanin.getRegCnt();
-      }
-    }
-    close(fd);
-  }
-
-  g.max_component_cnt++;
-  // Build Fanout:
-  populate_fanout(g);
-  return g_ptr;
-}
-void par::TritonPart::hyperGraph_from_delay_graph(const RRP::Graph*g_ptr){
-    const RRP::Graph& g=*g_ptr;
-    num_hyperedges_=g.vertices.size();
-    num_vertices_=g.max_component_cnt;
-    hyperedges_.clear();
-    hyperedges_.resize(g.vertices.size());
-    for (const auto& vertex : g.vertices) {
-        auto& hyperedge_out = hyperedges_[vertex.id];
-        hyperedge_out.push_back(vertex.foreign_id.cluster_id);
-        for (const auto& fanout : vertex.fanouts) {
-            hyperedge_out.push_back(g.vertices[fanout.vertex_idx].foreign_id.cluster_id);
+RRP::Graph RRP::load_delay_graph_from_txt(const char* file_name){
+    std::string line;
+    std::ifstream myfile (file_name);
+    RRP::Graph g;
+    if (myfile.is_open())
+    {
+        int line_cnt=0;
+        while ( getline (myfile,line) )
+        {
+          std::stringstream ss(line);
+          line_cnt++;
+          std::vector<int> fields{std::istream_iterator<int>(ss),std::istream_iterator<int>()};
+          if(fields.size()==2){
+            //Component ID, number of vertices with that component ID
+            // vertex ID assigned consecutively
+            for(int i=0;i<fields[1];i++){
+              RRP::Vertex v;
+              v.foreign_id.cluster_id=fields[0];
+              v.id=g.vertices.size();
+              g.vertices.push_back(v);
+            }
+          }else if (fields.size()==4){
+            //destination ID, driver ID, reg_cnt, comb_delay
+            RRP::Fanin fanin;
+            if(fields[0]>=g.vertices.size()){
+              fprintf(stderr, "@line %d: dst vertex %d does not exist, only %zu vertices\n",line_cnt,fields[0],g.vertices.size());
+              continue;
+            }
+            if(fields[1]>=g.vertices.size()){
+              fprintf(stderr, "@line %d: driver vertex %d does not exist, only %zu vertices\n",line_cnt,fields[1],g.vertices.size());
+              continue;
+            }
+            fanin.driver_id=fields[1];
+            fanin.reg_cnt=fields[2];
+            fanin.comb_delay=fields[3];
+            g.vertices[fields[0]].fanins.push_back(fanin);
+          }else{
+            std::cout<<"@ line:"<<line_cnt<<"Invalid line in delay graph file:"<<line<<std::endl;
+          }
+          
         }
-        std::sort(hyperedge_out.begin(), hyperedge_out.end());
-        hyperedge_out.erase(std::unique(hyperedge_out.begin(), hyperedge_out.end()), hyperedge_out.end());
+        myfile.close();
     }
-    hyperedge_weights_=std::vector<std::vector<float>>(num_hyperedges_,std::vector<float>(hyperedge_dimensions_,1.0));
-    vertex_weights_=std::vector<std::vector<float>>(num_vertices_,std::vector<float>(hyperedge_dimensions_,1.0));
-    fixed_attr_.clear();
-    community_attr_.clear();
-    group_attr_.clear();
-    placement_attr_.clear();
-    original_hypergraph_ = std::make_shared<Hypergraph>(vertex_dimensions_,
-                                                      hyperedge_dimensions_,
-                                                      placement_dimensions_,
-                                                      hyperedges_,
-                                                      vertex_weights_,
-                                                      hyperedge_weights_,
-                                                      fixed_attr_,
-                                                      community_attr_,
-                                                      placement_attr_,
-                                                      logger_);
+    else std::cout << "Unable to open file";
+    populate_fanout(g);
+    return g;
+}
+
+void RRP::print_graph(RRP::Graph& g,FILE* ostream){
+  fprintf(ostream,"Graph has %lu vertices\n",g.vertices.size());
+  for(auto& v:g.vertices){
+    fprintf(ostream,"Vertex %lu: Component id %lu, edge_start_idx %lu \n",v.id,v.foreign_id.cluster_id,v.edge_id_start_idx);
+    fprintf(ostream,"Fanin: \n");
+    int idx=0;
+    for(auto& fanin:v.fanins){
+      fprintf(ostream,"\t %d:driver %lu, reg_cnt %u, comb_delay %u\n",idx++,fanin.driver_id,fanin.reg_cnt,fanin.comb_delay);
+    }
+    idx=0;
+    fprintf(ostream,"Fanout: \n");
+    for(auto& fanout:v.fanouts){
+      fprintf(ostream,"\t %d:dst %lu, fanin_idx %lu\n",idx++,fanout.vertex_idx,fanout.fanin_idx);
+    }
+  }
 }

@@ -54,6 +54,11 @@ capnp_generate_cpp(CAPNP_SRCS CAPNP_HDRS
   delay_graph.capnp
 )
 
+add_executable(text_graph_loader_test
+  src/tests/text_loader_test.cpp
+  src/delay_graph.cpp
+)
+
 add_library(par_lib
   ${CAPNP_SRCS}
   src/PartitionMgr.cpp

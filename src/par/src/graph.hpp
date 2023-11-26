@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <cstddef>
 #include <vector>
 namespace par{
@@ -34,6 +35,9 @@ namespace RRP {
         int max_crossing;
         int num_partitions;
     };
+    void populate_fanout(RRP::Graph& g);
+    Graph load_delay_graph_from_txt(const char* file_name);
+    void print_graph(RRP::Graph& g,FILE* ostream);
 };
 
 };
