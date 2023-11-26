@@ -5,7 +5,7 @@ namespace RRP {
     // clusters: index of vertexes in each cluster
     // Abstract each output of a cluster into a single vertex 
     // and compute the edges after abstraction using algorithm WD 
-    void make_abstracted_graph(const Graph& in,  const std::vector<std::vector<size_t>>& clusters,Graph& out);
+    void make_abstracted_graph(const Graph& in,  const std::vector<std::vector<size_t>>& clusters,Graph& out, std::vector<size_t>& mapping_table);
 
     //For initial partitioning:
     //Provide initial sets of loops (by partitioning vetexes into different loops)
@@ -21,7 +21,7 @@ namespace RRP {
     void FEAS_violating_loops(const Graph& in,const Partition_Solution_t& sol_in, std::vector<std::vector<Edge>>& loops);
 
     //Call OR-Tools to partition
-    void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,const Matrix<float>& upper_block_balance,
+    void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,const par::Matrix<float>& upper_block_balance,
     const par::Matrix<float>& lower_block_balance);
 
 }
