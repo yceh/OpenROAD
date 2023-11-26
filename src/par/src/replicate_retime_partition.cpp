@@ -117,25 +117,26 @@ namespace RRP {
                     }
                 }
             }
-
-            // only return the distance regarding dsts
-            for (const size_t dst : dsts) {
-                std::unordered_map<size_t, reg_delay>::const_iterator got = distances.find (dst);
-                Fanin n_fanin;
-                if (got == distances.end() ) {
-                    // src does not connect to this dst
-                    n_fanin.comb_delay = 0;
-                    n_fanin.reg_cnt = INF;
-                    n_fanin.driver_id = source;
-                } else {
-                    // src connects to this dst
-                    n_fanin.comb_delay = -1*got->second.neg_delay;
-                    n_fanin.reg_cnt = got->second.reg_cnt;
-                    n_fanin.driver_id = source;
-                }
-                new_fanin.push_back(n_fanin);
-            }
         }
+
+        // only return the distance regarding dsts
+        for (const size_t dst : dsts) {
+            std::unordered_map<size_t, reg_delay>::const_iterator got = distances.find (dst);
+            Fanin n_fanin;
+            if (got == distances.end() ) {
+                // src does not connect to this dst
+                n_fanin.comb_delay = 0;
+                n_fanin.reg_cnt = INF;
+                n_fanin.driver_id = source;
+            } else {
+                // src connects to this dst
+                n_fanin.comb_delay = -1*got->second.neg_delay;
+                n_fanin.reg_cnt = got->second.reg_cnt;
+                n_fanin.driver_id = source;
+            }
+            new_fanin.push_back(n_fanin);
+        }
+
     }
 
     void add_fanin_inf(const std::vector<Fanin> &new_fanin, const Fanin &src_fanin, std::vector<Fanin> &result_fanin) 
@@ -199,6 +200,10 @@ namespace RRP {
             cluster_id++;
         }
         // 2. update fanin edges in new graph
+        std::unordered_map<size_t, size_t> reversed_mapping_table;
+        for (size_t new_idx = 0; new_idx < mapping_table.size(); new_idx++) {
+            reversed_mapping_table.emplace(mapping_table[new_idx], new_idx);
+        }
         new_vertex_id = 0;
         for(const std::vector<std::vector<Fanin>>& fanins : all_new_fanins) {
             for(const std::vector<Fanin>& fanin_of_a_dst : fanins) {
@@ -206,7 +211,12 @@ namespace RRP {
                     Fanin n_fanin;          // fanin for new graph
                     n_fanin.comb_delay = a_fanin.comb_delay;
                     n_fanin.reg_cnt = a_fanin.reg_cnt;
-                    n_fanin.driver_id = mapping_table[a_fanin.driver_id];
+                    auto reversed_got = reversed_mapping_table.find(a_fanin.driver_id);
+                    if (reversed_got == reversed_mapping_table.end()) {
+                        n_fanin.driver_id = undefined_index;
+                    } else {
+                        n_fanin.driver_id = reversed_got->second;                    
+                    }
                     new_graph.vertices[new_vertex_id].fanins.push_back(n_fanin); 
                 }
 

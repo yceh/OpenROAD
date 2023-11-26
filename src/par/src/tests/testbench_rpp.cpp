@@ -27,7 +27,7 @@ int main()
 
     RRP::make_abstracted_graph(test_graph, clusters, new_graph, mapping_table);
 
-    // show_graph(new_graph, mapping_table);
+    show_graph(new_graph, mapping_table);
 
  
     return 0;
