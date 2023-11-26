@@ -48,12 +48,19 @@ endif (LOAD_CPLEX)
 
 find_package(Threads REQUIRED)
 find_package(ortools REQUIRED)
+find_package(CapnProto REQUIRED)
+
+capnp_generate_cpp(CAPNP_SRCS CAPNP_HDRS
+  delay_graph.capnp
+)
 
 add_library(par_lib
+  ${CAPNP_SRCS}
   src/PartitionMgr.cpp
   src/TritonPart.cpp
   src/Hypergraph.cpp
   src/Utilities.cpp
+  src/delay_graph.cpp
   src/Coarsener.cpp
   src/Multilevel.cpp
   src/Refiner.cpp
@@ -69,6 +76,8 @@ add_library(par_lib
 target_include_directories(par_lib
   PUBLIC
     include
+    ${CMAKE_CURRENT_BINARY_DIR}
+
 )
 
 target_link_libraries(par_lib
@@ -78,6 +87,7 @@ target_link_libraries(par_lib
     utl_lib
     dbSta_lib
     ortools::ortools
+    CapnProto::capnp
 )
 
 if (LOAD_CPLEX)

@@ -76,6 +76,7 @@
 #include "utl/Logger.h"
 
 using utl::PAR;
+par::RRP::Graph* load_graph_from_file(const char* filename);
 
 namespace par {
 
@@ -217,6 +218,7 @@ void TritonPart::SetFineTuneParams(
 // placement information is specified in placement file The format is that each
 // line cooresponds to a group fixed vertices, community and placement
 // attributes both follows the hMETIS format
+
 void TritonPart::PartitionHypergraph(unsigned int num_parts_arg,
                                      float balance_constraint_arg,
                                      const std::vector<float>& base_balance_arg,
@@ -229,7 +231,8 @@ void TritonPart::PartitionHypergraph(unsigned int num_parts_arg,
                                      const char* fixed_file_arg,
                                      const char* community_file_arg,
                                      const char* group_file_arg,
-                                     const char* placement_file_arg)
+                                     const char* placement_file_arg,
+                                     const char* delay_graph_file_arg)
 {
   logger_->report("========================================");
   logger_->report("[STATUS] Starting TritonPart Partitioner");
@@ -250,6 +253,12 @@ void TritonPart::PartitionHypergraph(unsigned int num_parts_arg,
   std::string community_file = community_file_arg;
   std::string group_file = group_file_arg;
   std::string placement_file = placement_file_arg;
+  delay_graph=nullptr;
+  std::string delay_graph_file_str(delay_graph_file_arg);
+  if(!delay_graph_file_str.empty()){
+    delay_graph=::load_graph_from_file(delay_graph_file_arg);
+    hypergraph_file=delay_graph_file_str;
+  }
   // solution file
   std::string solution_file
       = hypergraph_file + std::string(".part.") + std::to_string(num_parts_);
@@ -286,9 +295,12 @@ void TritonPart::PartitionHypergraph(unsigned int num_parts_arg,
 
   // build hypergraph: read the basic hypergraph information and other
   // constraints
+  if(!delay_graph_file_str.empty()){
+    hyperGraph_from_delay_graph(delay_graph);
+  }else{
   ReadHypergraph(
       hypergraph_file, fixed_file, community_file, group_file, placement_file);
-
+  }
   // call the multilevel partitioner to partition hypergraph_
   // but the evaluation is the original_hypergraph_
   MultiLevelPartition();
@@ -1977,7 +1989,7 @@ void TritonPart::MultiLevelPartition()
 
   // partition on the processed hypergraph
   std::vector<int> solution = tritonpart_mlevel_partitioner->Partition(
-      hypergraph_, upper_block_balance, lower_block_balance);
+      hypergraph_, upper_block_balance, lower_block_balance,delay_graph);
 
   // Translate the solution of hypergraph to original_hypergraph_
   // solution to solution_

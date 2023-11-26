@@ -121,7 +121,8 @@ class PartitionMgr
                             int max_num_vcycle,
                             int num_coarsen_solutions,
                             int num_vertices_threshold_ilp,
-                            int global_net_threshold);
+                            int global_net_threshold,
+                            const char* delay_graph_file);
 
   // Evaluate a given solution of a hypergraph
   // The fixed vertices should statisfy the fixed vertices constraint

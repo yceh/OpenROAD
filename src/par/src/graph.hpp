@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <vector>
+namespace par{
 //Correspond to single output of a cluster (a multi-output cluster /cell correspond to multiple vertices)
 namespace RRP {
     struct Hgraph_Id{
@@ -26,6 +27,11 @@ namespace RRP {
         std::vector<Vertex> vertices;
         std::vector<size_t> primary_input_id;
         std::vector<size_t> primary_output_id;
+        size_t max_component_cnt;
+        int fixed_crossing_delay;
+        int proportional_crossing_delay;
+        int max_crossing;
     };
 };
 
+};

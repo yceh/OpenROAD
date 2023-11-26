@@ -52,6 +52,9 @@
 #include "utl/Logger.h"
 
 namespace par {
+namespace RRP {
+    struct Graph;
+}
 
 // The TritonPart Interface
 // TritonPart is a state-of-the-art hypergraph and netlist partitioner that
@@ -146,7 +149,8 @@ class TritonPart
                            const char* fixed_file,
                            const char* community_file,
                            const char* group_file,
-                           const char* placement_file);
+                           const char* placement_file,
+                           const char* delay_graph_file);
 
   // Evaluate a given solution of a hypergraph
   // The fixed vertices should statisfy the fixed vertices constraint
@@ -237,6 +241,7 @@ class TritonPart
       int num_coarsen_solutions,
       int num_vertices_threshold_ilp,
       int global_net_threshold);
+  RRP::Graph* delay_graph;
 
  private:
   // Main partititon function
@@ -248,7 +253,7 @@ class TritonPart
                       const std::string& community_file,
                       const std::string& group_file,
                       const std::string& placement_file);
-
+  void hyperGraph_from_delay_graph(const RRP::Graph*g);
   // read and build netlist
   // placement information is extracted from the OpenDB database
   void ReadNetlist(const std::string& fixed_file,
