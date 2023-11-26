@@ -76,6 +76,9 @@ add_library(par_lib
   src/KWayFMRefine.cpp
   src/KWayPMRefine.cpp
   src/PriorityQueue.cpp
+  src/delay_graph.cpp
+  src/delay_graph_to_hypergraph.cpp
+  src/load_delay_graph_capnp.cpp
 )
 
 target_include_directories(par_lib
