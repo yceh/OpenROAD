@@ -21,6 +21,7 @@ namespace RRP {
         size_t id;
         std::vector<Fanin> fanins;
         std::vector<Edge> fanouts;
+        size_t edge_id_start_idx;
 
     };
     struct Graph{
@@ -31,6 +32,7 @@ namespace RRP {
         int fixed_crossing_delay;
         int proportional_crossing_delay;
         int max_crossing;
+        int num_partitions;
     };
 };
 
