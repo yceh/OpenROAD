@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <utility>
 #include <vector>
 #include "Utilities.h"
 #include "graph.hpp"
@@ -14,8 +16,9 @@ namespace RRP {
 
     //The partitions each cluster is in
     struct Each_Edge_Solution{
-        std::vector<int> partitions;
-        Edge edge;
+        std::vector<std::pair<int, int>> partitions;
+        size_t src_idx;
+        size_t dst_idx;
     };
 
     struct Partition_Solution_t{
@@ -24,7 +27,7 @@ namespace RRP {
         std::vector<std::vector<int>> crossing_count;
     };
     // Finding loops with timing violations that should be added to the formulation using FEAS, and append to loops 
-    void FEAS_violating_loops(const Graph& in,const Partition_Solution_t& sol_in, std::vector<std::vector<Edge>>& loops);
+    bool FEAS_violating_loops(const Graph& in,const Partition_Solution_t& sol_in, std::vector<std::vector<Edge>>& loops);
 
     //Call OR-Tools to partition
     void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,const Matrix<float>& upper_block_balance,
