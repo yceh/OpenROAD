@@ -315,8 +315,9 @@ namespace RRP {
         // Traverse the fanouts of the current vertex
         for (const Edge& e : graph.vertices[v].fanouts) {
             size_t w = e.vertex_idx;
-            stack.push(e);
+            
             if (vertices[w].index == undefined_index) {
+                stack.push(e);
                 tarjanDFS(w, index, stack, vertices, graph, loops);
                 vertices[v].lowlink = std::min(vertices[v].lowlink, vertices[w].lowlink);
             } else if (vertices[w].onStack) {
@@ -329,12 +330,30 @@ namespace RRP {
             std::vector<Edge> loop;
             Edge loop_edge;
             size_t w;
+            size_t loop_dst;
+            loop_dst = stack.top().vertex_idx;
             do {
                 loop_edge = stack.top();
                 stack.pop();
                 w = loop_edge.vertex_idx;
                 vertices[w].onStack = false;
-                loop.push_back(loop_edge); // Add vertex to the loop
+                if (loop_edge.fanin_idx != undefined_index) {   
+                    // the source pseudo vertex doesn't need to add into the loop
+                    loop.push_back(loop_edge); // Add vertex to the loop
+                } else {
+                    size_t idx;
+                    for (idx = 0; idx < graph.vertices[w].fanins.size(); idx++) {
+                        if (graph.vertices[w].fanins[idx].driver_id == loop_dst) {
+                            loop_edge.fanin_idx = idx;
+                            loop.insert(loop.begin(), loop_edge);
+                            break;
+                        }
+                    }
+                    if (idx == graph.vertices[w].fanins.size()) {
+                        printf("@ there is ERROR in tarjan!\n");
+                    }
+                }
+                
             } while (w != v);
             if (loop.size() > 1) {
                 loops.push_back(loop); // Add the loop to the loops vector
@@ -355,6 +374,7 @@ namespace RRP {
                 // Do we want every vertex start with empty stack?
                 // Does it generate the replicated loop?
                 std::stack<Edge> stack; 
+                stack.push({v, undefined_index});
                 tarjanDFS(v, index, stack, vertices, in, loops);
             }
         }
