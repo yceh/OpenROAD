@@ -22,6 +22,7 @@ void RRP::populate_fanout(RRP::Graph& g)
     }
     edge_start_idx += vertex.fanins.size();
   }
+  g.total_num_edges=edge_start_idx;
 }
 RRP::Graph RRP::load_delay_graph_from_txt(const char* file_name){
     std::string line;

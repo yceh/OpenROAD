@@ -32,8 +32,11 @@ namespace RRP {
         size_t max_component_cnt;
         int fixed_crossing_delay;
         int proportional_crossing_delay;
+        int ifc_size;
+        int max_delay;
         int max_crossing;
         int num_partitions;
+        int total_num_edges;
     };
     void populate_fanout(RRP::Graph& g);
     Graph load_delay_graph_from_txt(const char* file_name);

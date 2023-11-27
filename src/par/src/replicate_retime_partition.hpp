@@ -20,8 +20,11 @@ namespace RRP {
         size_t src_idx;
         size_t dst_idx;
     };
-
+    struct Component_To_Output_Solution{
+        std::vector<std::pair<int, int>> partitions;
+    };
     struct Partition_Solution_t{
+        std::vector<Component_To_Output_Solution> component_to_output_solutions;
         std::vector<Each_Edge_Solution> each_edge_solution;
         int clock_period;
         std::vector<std::vector<int>> crossing_count;
@@ -30,8 +33,7 @@ namespace RRP {
     bool FEAS_violating_loops(const Graph& in,const Partition_Solution_t& sol_in, std::vector<std::vector<Edge>>& loops);
 
     //Call OR-Tools to partition
-    void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,const Matrix<float>& upper_block_balance,
-    const par::Matrix<float>& lower_block_balance);
+    void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,std::vector<size_t> max_capacity);
 
 }
 }
