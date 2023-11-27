@@ -142,21 +142,28 @@ namespace RRP {
     void add_fanin_inf(const std::vector<Fanin> &new_fanin, const Fanin &src_fanin, std::vector<Fanin> &result_fanin) 
     {
         for (const Fanin n_fanin : new_fanin) {
-            result_fanin.push_back( {n_fanin.reg_cnt+src_fanin.reg_cnt, 
-                                        n_fanin.comb_delay+src_fanin.comb_delay, 
-                                        src_fanin.driver_id});
+            if (n_fanin.comb_delay == 0 && n_fanin.reg_cnt == INF) {
+                result_fanin.push_back( {n_fanin.reg_cnt, 
+                                            n_fanin.comb_delay, 
+                                            src_fanin.driver_id}); 
+            } else {
+                result_fanin.push_back( {n_fanin.reg_cnt+src_fanin.reg_cnt, 
+                                            n_fanin.comb_delay+src_fanin.comb_delay, 
+                                            src_fanin.driver_id});                
+            }
         }
     }
 
 
     void WD_refine(const Graph& in, const size_t cluster_num, const std::vector<size_t>& cluster, const std::vector<size_t> &vertices_cluster_num, 
-                    const std::vector<src_inf> &srcs, const std::vector<size_t> &dsts, std::vector<std::vector<Fanin>> &new_fanins) 
+                    const std::vector<src_inf> &srcs, const std::vector<size_t> &dsts, std::vector<std::vector<Fanin>> &dsts_new_fanins) 
     {
-        std::vector<Fanin> new_fanin;
+        std::vector<std::vector<Fanin>> srcs_based_new_fanins;
                 
         for (const src_inf& src : srcs) {
             size_t src_vertex = src.vertex_idx;
-
+            std::vector<Fanin> new_fanin;
+            
             Dijkstra(in, cluster_num, cluster, vertices_cluster_num, src_vertex, dsts, new_fanin);
 
             // for debug----------------------------------
@@ -172,9 +179,21 @@ namespace RRP {
                 Fanin src_fanin = in.vertices[src_vertex].fanins[fanin_idx];
                 std::vector<Fanin> result_fanin;
                 add_fanin_inf(new_fanin, src_fanin, result_fanin);
-                new_fanins.push_back(result_fanin);
-            }        
+                srcs_based_new_fanins.push_back(result_fanin);
+            }
         }
+        for (size_t dst_idx = 0; dst_idx < dsts.size(); dst_idx++) {
+            std::vector<Fanin> dst_fanins;
+            for (size_t src_idx = 0; src_idx < srcs.size(); src_idx++) {
+                Fanin dst_fanin = srcs_based_new_fanins[src_idx][dst_idx];
+                // valid connection
+                if (!(dst_fanin.reg_cnt == INF &&dst_fanin.comb_delay == 0)) {
+                    dst_fanins.push_back(dst_fanin);
+                }
+            }
+            dsts_new_fanins.push_back(dst_fanins);
+        }
+
     }
 
     // remove vertice in the cluster and add new vertices 
@@ -296,8 +315,9 @@ namespace RRP {
         // Traverse the fanouts of the current vertex
         for (const Edge& e : graph.vertices[v].fanouts) {
             size_t w = e.vertex_idx;
-            stack.push(e);
+            
             if (vertices[w].index == undefined_index) {
+                stack.push(e);
                 tarjanDFS(w, index, stack, vertices, graph, loops);
                 vertices[v].lowlink = std::min(vertices[v].lowlink, vertices[w].lowlink);
             } else if (vertices[w].onStack) {
@@ -310,13 +330,49 @@ namespace RRP {
             std::vector<Edge> loop;
             Edge loop_edge;
             size_t w;
+            size_t loop_dst;
+            bool first_visit = true;
+
             do {
-                loop_edge = stack.top();
-                stack.pop();
-                w = loop_edge.vertex_idx;
+                // ---ensure the vertex in the stack is on the desired loop---
+                do {
+                    loop_edge = stack.top();
+                    stack.pop();
+                    w = loop_edge.vertex_idx;
+                } while (vertices[w].lowlink != vertices[v].lowlink);
+                // ----------------------------------------------------------
+                // the original SCC version---------------------------------------
+                // loop_edge = stack.top();
+                // stack.pop();
+                // w = loop_edge.vertex_idx;
+                //------------------------------------------------------------
+
+                if (first_visit) {
+                    loop_dst = w;
+                    first_visit = false;  
+                }
+
+                
                 vertices[w].onStack = false;
-                loop.push_back(loop_edge); // Add vertex to the loop
+                if (loop_edge.fanin_idx != undefined_index) {   
+                    // the source pseudo vertex doesn't need to add into the loop
+                    loop.push_back(loop_edge); // Add vertex to the loop
+                } else {
+                    size_t idx;
+                    for (idx = 0; idx < graph.vertices[w].fanins.size(); idx++) {
+                        if (graph.vertices[w].fanins[idx].driver_id == loop_dst) {
+                            loop_edge.fanin_idx = idx;
+                            loop.insert(loop.begin(), loop_edge);
+                            break;
+                        }
+                    }
+                    if (idx == graph.vertices[w].fanins.size()) {
+                        printf("@ there is ERROR in tarjan!\n");
+                    }
+                }
+                
             } while (w != v);
+
             if (loop.size() > 1) {
                 loops.push_back(loop); // Add the loop to the loops vector
             }
@@ -336,6 +392,7 @@ namespace RRP {
                 // Do we want every vertex start with empty stack?
                 // Does it generate the replicated loop?
                 std::stack<Edge> stack; 
+                stack.push({v, undefined_index});
                 tarjanDFS(v, index, stack, vertices, in, loops);
             }
         }

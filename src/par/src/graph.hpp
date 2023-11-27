@@ -40,6 +40,7 @@ namespace RRP {
     };
     void populate_fanout(RRP::Graph& g);
     Graph load_delay_graph_from_txt(const char* file_name);
+    std::vector<std::vector<size_t>> load_clusters_from_txt(const char* file_name);
     void print_graph(RRP::Graph& g,FILE* ostream);
 };
 
