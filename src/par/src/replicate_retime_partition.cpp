@@ -331,11 +331,28 @@ namespace RRP {
             Edge loop_edge;
             size_t w;
             size_t loop_dst;
-            loop_dst = stack.top().vertex_idx;
+            bool first_visit = true;
+
             do {
-                loop_edge = stack.top();
-                stack.pop();
-                w = loop_edge.vertex_idx;
+                // ---ensure the vertex in the stack is on the desired loop---
+                do {
+                    loop_edge = stack.top();
+                    stack.pop();
+                    w = loop_edge.vertex_idx;
+                } while (vertices[w].lowlink != vertices[v].lowlink);
+                // ----------------------------------------------------------
+                // the original SCC version---------------------------------------
+                // loop_edge = stack.top();
+                // stack.pop();
+                // w = loop_edge.vertex_idx;
+                //------------------------------------------------------------
+
+                if (first_visit) {
+                    loop_dst = w;
+                    first_visit = false;  
+                }
+
+                
                 vertices[w].onStack = false;
                 if (loop_edge.fanin_idx != undefined_index) {   
                     // the source pseudo vertex doesn't need to add into the loop
@@ -355,6 +372,7 @@ namespace RRP {
                 }
                 
             } while (w != v);
+
             if (loop.size() > 1) {
                 loops.push_back(loop); // Add the loop to the loops vector
             }
