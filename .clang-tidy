@@ -27,6 +27,7 @@ Checks: >
   -google-readability-casting,
   -google-readability-todo,
   -google-runtime-references,
+  -google-runtime-int,
   -google-explicit-constructor,
   performance-*,
   bugprone-*,
@@ -44,7 +45,7 @@ Checks: >
   -modernize-pass-by-value,
   -modernize-raw-string-literal,
   -modernize-return-braced-init-list,
-  -modernize-use-auto,
+  -modernize-use-default-member-init,
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type,
   -modernize-use-transparent-functors,
@@ -55,9 +56,6 @@ Checks: >
   -misc-redundant-expression,
   -misc-unused-parameters,
 
-CheckOptions:
-   - key:             google-runtime-int.TypeSuffix
-     value:           _t
 
 # Not currently handling identifier naming
 # WarningsAsErrors: "*"

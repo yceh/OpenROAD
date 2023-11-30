@@ -59,6 +59,12 @@ add_executable(text_graph_loader_test
   src/delay_graph.cpp
 )
 
+add_executable(initial_loop_test
+  src/tests/test_initial_loops.cpp
+  src/find_initial_loops.cpp
+  src/delay_graph.cpp
+)
+
 add_library(par_lib
   ${CAPNP_SRCS}
   src/PartitionMgr.cpp
@@ -138,6 +144,11 @@ target_link_libraries(par
     odb
     OpenSTA
     par_lib
+)
+
+target_link_libraries(initial_loop_test
+  PRIVATE
+    ortools::ortools
 )
 
 if (LOAD_CPLEX)

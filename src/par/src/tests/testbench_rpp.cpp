@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 
 
     // test for tarjan algorithm
-    RRP::tarjan_loops(test_graph, loops);
+    RRP::find_initial_loops(test_graph, loops);
     show_loops(test_graph, loops);
 
  

@@ -339,6 +339,7 @@ namespace RRP {
                     loop_edge = stack.top();
                     stack.pop();
                     w = loop_edge.vertex_idx;
+                    vertices[w].onStack = false;
                 } while (vertices[w].lowlink != vertices[v].lowlink);
                 // ----------------------------------------------------------
                 // the original SCC version---------------------------------------

@@ -35,5 +35,6 @@ namespace RRP {
     //Call OR-Tools to partition
     void ilp_part(const Graph& in,Partition_Solution_t& sol_out, const std::vector<std::vector<Edge>>& loops,std::vector<size_t> max_capacity);
 
+    void find_initial_loops(const Graph& g, std::vector<std::vector<Edge>>& loops);
 }
 }
