@@ -48,7 +48,9 @@ endif (LOAD_CPLEX)
 
 find_package(Threads REQUIRED)
 find_package(ortools REQUIRED)
+find_package(spdlog REQUIRED)
 find_package(CapnProto REQUIRED)
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 capnp_generate_cpp(CAPNP_SRCS CAPNP_HDRS
   delay_graph.capnp
@@ -65,6 +67,13 @@ add_executable(initial_loop_test
   src/delay_graph.cpp
 )
 
+add_executable(initial_partition_test
+  src/tests/test_initial_partitioning.cpp
+  src/find_initial_loops.cpp
+  src/find_violating_loops.cpp
+  src/ilp_solve.cpp
+  src/delay_graph.cpp
+)
 add_library(par_lib
   ${CAPNP_SRCS}
   src/PartitionMgr.cpp
@@ -149,6 +158,12 @@ target_link_libraries(par
 target_link_libraries(initial_loop_test
   PRIVATE
     ortools::ortools
+)
+
+target_link_libraries(initial_partition_test
+  PRIVATE
+    ortools::ortools
+    spdlog::spdlog
 )
 
 if (LOAD_CPLEX)

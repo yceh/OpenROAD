@@ -3,13 +3,23 @@
 #include <csignal>
 #include <cstddef>
 #include <cstdlib>
+#include <unordered_map>
 #include <vector>
 
 #include "replicate_retime_partition.hpp"
 
-typedef std::vector<par::RRP::Edge> Loop_t;
-typedef std::vector<Loop_t> Loops_t;
+using Loop_t = std::vector<par::RRP::Edge>;
+using Loops_t = std::vector<Loop_t>;
 namespace Find_Initial_Loop_NS {
+struct Negtive_Slack{
+  int slack;
+  static int clock_period;
+  operator int&() { return slack; }
+  operator const int&() const { return slack; }
+  Negtive_Slack(int slack):slack(slack){}
+  Negtive_Slack(const par::RRP::Fanin& fanin):slack(fanin.reg_cnt*clock_period-fanin.comb_delay){}
+  bool do_output() const { return slack < 0; }
+};
 struct Reg_Delay
 {
   int reg_cnt;
@@ -37,20 +47,25 @@ struct Reg_Delay
     tmp += other;
     return tmp;
   }
+  bool do_output() const { return true; }
 };
 
 // Recording which vertexes(low_link) on the call stack can be reached(form a
 // loop), and the fanout to reach it with min reg_delay.
+template<typename T>
 struct Low_Link_Attr
 {
-  Reg_Delay reg_delay;
+  T reg_delay;
   int fanout_min_reg_delay;
 };
 
-using Low_Links_t = absl::flat_hash_map<int, Low_Link_Attr>;
+template<typename T>
+using Low_Links_t = std::unordered_map<int, Low_Link_Attr<T>>;
+
+template<typename T>
 class Per_Vertex_Traversal_Attr
 {
-  Low_Links_t
+  Low_Links_t<T>
       low_links;  // which vertex on the call stack before me can be reached
   long dfs_idx;   // 0: not visited, >0: visited,on call stack <0: visited,but
                   // not on call stack (not reachable from the current DFS root)
@@ -104,12 +119,12 @@ class Per_Vertex_Traversal_Attr
     low_links.reserve(low_links.size() + other_lowlink_cnt + 1);
   }
 
-  Low_Links_t& get_low_links() { return low_links; }
+  Low_Links_t<T>& get_low_links() { return low_links; }
 
-  void add_low_link(int low_link, int fanout_idx, const Reg_Delay& reg_delay)
+  void add_low_link(int low_link, int fanout_idx, const T& reg_delay)
   {
     auto res
-        = low_links.emplace(low_link, Low_Link_Attr{reg_delay, fanout_idx});
+        = low_links.emplace(low_link, Low_Link_Attr<T>{reg_delay, fanout_idx});
     if (!res.second) {
       // There are multiple ways to reach the same vertex on the call stack.
       // Choose the one with min reg_delay
@@ -121,11 +136,14 @@ class Per_Vertex_Traversal_Attr
   }
 };
 #define DEBUG_INITIAL_LOOP
-int Per_Vertex_Traversal_Attr::next_dfs_idx = 0;
+template<> int Per_Vertex_Traversal_Attr<Reg_Delay>::next_dfs_idx = 0;
+template<> int Per_Vertex_Traversal_Attr<Negtive_Slack>::next_dfs_idx = 0;
+
+template<typename T>
 struct DFS_Visitor
 {
   const par::RRP::Graph& g;
-  std::vector<Per_Vertex_Traversal_Attr> visit_attributes;
+  std::vector<Per_Vertex_Traversal_Attr<T>> visit_attributes;
   Loops_t& output;
   std::vector<int> dfs_idx_to_vertex_idx_map;
   DFS_Visitor(const par::RRP::Graph& g, Loops_t& output)
@@ -177,14 +195,11 @@ struct DFS_Visitor
       auto reached_parent = (*this)(child_idx);
       auto& child_vertex = g.vertices[child_idx];
       auto& to_child_edge = child_vertex.fanins[fanout.fanin_idx];
-      auto to_child_reg_delay = Reg_Delay(to_child_edge);
+      auto to_child_reg_delay = T(to_child_edge);
       if (reached_parent) {
         // Found back edge, the last edge of a loop
         auto& child_attr=visit_attributes[child_idx];
         attr.add_low_link(child_attr.get_dfs_idx(), fanout_idx, to_child_reg_delay);
-        if (!child_attr.get_low_links().empty()) {
-          raise(SIGTRAP);
-        }
       }
       // Accumulate the low link of the child that are still on the call stack
       // (will form a loop in this iteration of DFS)
@@ -204,7 +219,9 @@ struct DFS_Visitor
     // See whether we complete a loop (some low link = idx)
     auto& low_links = attr.get_low_links();
     auto iter = low_links.find(this_dfs_idx);
-    if (iter != low_links.end()) {
+    if (iter != low_links.end()
+    &&iter->second.reg_delay.do_output()
+    ) {
       // Found a loop
       output.emplace_back();
       auto& loop = output.back();
@@ -216,11 +233,11 @@ struct DFS_Visitor
     }
 
     //DEBUG
-    for(auto& low_link : low_links) {
+    /*for(auto& low_link : low_links) {
       if (low_link.first >= this_dfs_idx) {
         raise(SIGTRAP);
       }
-    }
+    }*/
     return false;
   }
 };
@@ -229,8 +246,18 @@ struct DFS_Visitor
 
 void par::RRP::find_initial_loops(const par::RRP::Graph& g, std::vector<std::vector<Edge>>& loops)
 {
-  Find_Initial_Loop_NS::Per_Vertex_Traversal_Attr::next_dfs_idx = 0;
-  Find_Initial_Loop_NS::DFS_Visitor visitor(g, loops);
+  Find_Initial_Loop_NS::Per_Vertex_Traversal_Attr<Find_Initial_Loop_NS::Reg_Delay>::next_dfs_idx = 0;
+  Find_Initial_Loop_NS::DFS_Visitor<Find_Initial_Loop_NS::Reg_Delay> visitor(g, loops);
+  for (size_t i = 0; i < g.vertices.size(); ++i) {
+    visitor(i);
+  }
+}
+int Find_Initial_Loop_NS::Negtive_Slack::clock_period;
+void par::RRP::find_negtive_slack_loops(const par::RRP::Graph& g,int clock_period, std::vector<std::vector<Edge>>& loops)
+{
+  Find_Initial_Loop_NS::Per_Vertex_Traversal_Attr<Find_Initial_Loop_NS::Negtive_Slack>::next_dfs_idx = 0;
+  Find_Initial_Loop_NS::Negtive_Slack::clock_period = clock_period;
+  Find_Initial_Loop_NS::DFS_Visitor<Find_Initial_Loop_NS::Negtive_Slack> visitor(g, loops);
   for (size_t i = 0; i < g.vertices.size(); ++i) {
     visitor(i);
   }
